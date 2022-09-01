@@ -1,0 +1,48 @@
+name: Build then push to Dockerhub
+on:
+  push:
+    branches:    
+      - master
+env:
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  REPOSITORY_NAME: repo-stats
+  DOCKER_BUILDKIT: 1
+jobs:
+  build_and_push_to_registry:
+    name: Build and push Docker image to Docker Hub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Docker Hub Login
+        uses: docker/login-action@v2
+        with:
+          username: $DOCKERHUB_USERNAME
+          password: $DOCKERHUB_TOKEN
+
+      - name: Docker Build (Build Stage)
+        run: >
+          docker build
+          --build-arg BUILDKIT_INLINE_CACHE=1
+          --file Dockerfile
+          --target build
+          --cache-from=$DOCKERHUB_USERNAME/$REPOSITORY_NAME:build-stage
+          --tag $DOCKERHUB_USERNAME/$REPOSITORY_NAME:build-stage .
+
+      - name: Docker Push (Build Stage)
+        run: docker push $DOCKERHUB_USERNAME/$REPOSITORY_NAME:build-stage
+
+      - name: Docker Build (Runtime Stage)
+        run: >
+          docker build
+          --build-arg BUILDKIT_INLINE_CACHE=1
+          --file Dockerfile
+          --target runtime
+          --cache-from=$DOCKERHUB_USERNAME/$REPOSITORY_NAME:build-stage
+          --cache-from=$DOCKERHUB_USERNAME/$REPOSITORY_NAME:latest
+          --tag $DOCKERHUB_USERNAME/$REPOSITORY_NAME:latest .
+
+      - name: Docker Push (Runtime Stage)
+        run: docker push $DOCKERHUB_USERNAME/$REPOSITORY_NAME:latest
