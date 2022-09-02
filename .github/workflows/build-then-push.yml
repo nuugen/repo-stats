@@ -1,4 +1,4 @@
-name: Build then push to Dockerhub
+name: Build, publish to Dockerhub, then deploy to K8S
 on:
   push:
     branches:    
@@ -8,6 +8,12 @@ env:
   DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
   REPOSITORY_NAME: repo-stats
   DOCKER_BUILDKIT: 1
+  # Implementation specific configs for deploying to K8S need to also be
+  # injected.
+  # e.g for GKE
+  # PROJECT_ID
+  # ZONE
+  # GKE_CLUSTER
 jobs:
   build_and_push_to_registry:
     name: Build and push Docker image to Docker Hub
@@ -46,3 +52,6 @@ jobs:
 
       - name: Docker Push (Runtime Stage)
         run: docker push $DOCKERHUB_USERNAME/$REPOSITORY_NAME:latest
+  # deploy_to_k8s:
+    # needs: build_and_push_to_registry
+    # authenticate against cluster, apply deployment manifest, rollout status, etc...
